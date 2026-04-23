@@ -1,7 +1,7 @@
 /**
  * ConvoSim — Express Server
  * Serves the static Convolution Simulator app.
- * Deployable to Render, Railway, Fly.io, Heroku, etc.
+ * Works with both traditional servers AND Vercel serverless functions.
  */
 
 'use strict';
@@ -43,18 +43,20 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-/* ── Start server ─── */
-const server = app.listen(PORT, () => {
-  console.log(`\n🌊  ConvoSim running at http://localhost:${PORT}\n`);
-  console.log(`   Health: http://localhost:${PORT}/health`);
-  console.log(`   Presets: http://localhost:${PORT}/api/presets\n`);
-});
+/* ── Start server (only in local/traditional environments) ─── */
+if (process.env.VERCEL !== '1') {
+  const server = app.listen(PORT, () => {
+    console.log(`\n🌊  ConvoSim running at http://localhost:${PORT}\n`);
+    console.log(`   Health: http://localhost:${PORT}/health`);
+    console.log(`   Presets: http://localhost:${PORT}/api/presets\n`);
+  });
 
-server.on('error', (err) => {
-  console.error('\n❌ Server Error:', err.message);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`   Port ${PORT} is already in use. Resetting...`);
-  }
-});
+  server.on('error', (err) => {
+    console.error('\n❌ Server Error:', err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`   Port ${PORT} is already in use. Resetting...`);
+    }
+  });
+}
 
 module.exports = app;

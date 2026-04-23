@@ -1,15 +1,20 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
+  "buildCommand": "npm install && npm run build 2>/dev/null || true",
+  "outputDirectory": ".",
   "routes": [
     {
+      "src": "/api/(.*)",
+      "methods": ["GET", "POST"],
+      "dest": "/api/$1.js"
+    },
+    {
+      "src": "/(.*\\.(js|css|json|html|xml))",
+      "dest": "/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/index.html"
     }
   ],
   "env": {
