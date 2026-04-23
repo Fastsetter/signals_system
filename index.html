@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConvoSim — Convolution Simulator</title>
+  <meta name="description" content="Interactive step-by-step convolution simulator powered by Plotly.js. Visualize signal flipping, shifting, multiplication, spectrum, and y(t) = x(t)*h(t)." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── HEADER ──────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">∫</span>
+        <h1>ConvoSim</h1>
+        <span class="brand-sub">Convolution Simulator</span>
+      </div>
+      <div class="header-controls">
+        <div class="mode-toggle" id="modeToggle">
+          <button class="mode-btn active" id="btnContinuous" data-mode="continuous">Continuous</button>
+          <button class="mode-btn"        id="btnDiscrete"   data-mode="discrete">Discrete</button>
+        </div>
+        <button class="help-btn" id="helpBtn" title="How to use">?</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN LAYOUT ─────────────────────────────────────── -->
+  <main class="app-layout">
+
+    <!-- ── LEFT: Signal Input Panel ────────────────────── -->
+    <aside class="signal-panel glass-panel">
+      <h2 class="panel-title">Signal Input</h2>
+
+      <!-- x(t) ──────────────────────────────────────────── -->
+      <div class="signal-section">
+        <div class="signal-header">
+          <span class="sig-badge x-badge">x(t)</span>
+          <span class="sig-name">Input Signal</span>
+        </div>
+        <div class="sig-type-grid" id="xTypeGrid">
+          <button class="sig-btn active" data-sig="x" data-type="rect">Rect</button>
+          <button class="sig-btn"       data-sig="x" data-type="step">Step</button>
+          <button class="sig-btn"       data-sig="x" data-type="impulse">Impulse</button>
+          <button class="sig-btn"       data-sig="x" data-type="exp">Exp</button>
+          <button class="sig-btn"       data-sig="x" data-type="triangle">Triangle</button>
+          <button class="sig-btn"       data-sig="x" data-type="sine">Sine</button>
+          <button class="sig-btn draw-btn" data-sig="x" data-type="draw">✏ Draw</button>
+        </div>
+        <div class="sliders-block" id="xSliders">
+          <label class="slider-row">
+            <span>Amplitude</span>
+            <input type="range" id="xAmp"   min="0.1" max="3"  step="0.05" value="1" />
+            <span class="sval" id="xAmpVal">1.00</span>
+          </label>
+          <label class="slider-row">
+            <span>Width / τ</span>
+            <input type="range" id="xWidth" min="0.1" max="6"  step="0.1"  value="2" />
+            <span class="sval" id="xWidthVal">2.0</span>
+          </label>
+          <label class="slider-row">
+            <span>Shift / t₀</span>
+            <input type="range" id="xShift" min="-4"  max="4"  step="0.1"  value="0" />
+            <span class="sval" id="xShiftVal">0.0</span>
+          </label>
+          <label class="slider-row" id="xFreqRow" style="display:none">
+            <span>Frequency</span>
+            <input type="range" id="xFreq"  min="0.1" max="5"  step="0.1"  value="1" />
+            <span class="sval" id="xFreqVal">1.0</span>
+          </label>
+        </div>
+        <div class="draw-zone" id="xDrawZone" style="display:none">
+          <canvas id="xDrawCanvas" width="280" height="90"></canvas>
+          <div class="draw-hint">Click &amp; drag to draw signal</div>
+          <button class="clear-btn" id="xClearBtn">✕ Clear</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- h(t) ──────────────────────────────────────────── -->
+      <div class="signal-section">
+        <div class="signal-header">
+          <span class="sig-badge h-badge">h(t)</span>
+          <span class="sig-name">Impulse Response</span>
+        </div>
+        <div class="sig-type-grid" id="hTypeGrid">
+          <button class="sig-btn active" data-sig="h" data-type="rect">Rect</button>
+          <button class="sig-btn"       data-sig="h" data-type="step">Step</button>
+          <button class="sig-btn"       data-sig="h" data-type="impulse">Impulse</button>
+          <button class="sig-btn"       data-sig="h" data-type="exp">Exp</button>
+          <button class="sig-btn"       data-sig="h" data-type="triangle">Triangle</button>
+          <button class="sig-btn"       data-sig="h" data-type="sine">Sine</button>
+          <button class="sig-btn draw-btn" data-sig="h" data-type="draw">✏ Draw</button>
+        </div>
+        <div class="sliders-block" id="hSliders">
+          <label class="slider-row">
+            <span>Amplitude</span>
+            <input type="range" id="hAmp"   min="0.1" max="3"  step="0.05" value="1" />
+            <span class="sval" id="hAmpVal">1.00</span>
+          </label>
+          <label class="slider-row">
+            <span>Width / τ</span>
+            <input type="range" id="hWidth" min="0.1" max="6"  step="0.1"  value="2" />
+            <span class="sval" id="hWidthVal">2.0</span>
+          </label>
+          <label class="slider-row">
+            <span>Shift / t₀</span>
+            <input type="range" id="hShift" min="-4"  max="4"  step="0.1"  value="0" />
+            <span class="sval" id="hShiftVal">0.0</span>
+          </label>
+          <label class="slider-row" id="hFreqRow" style="display:none">
+            <span>Frequency</span>
+            <input type="range" id="hFreq"  min="0.1" max="5"  step="0.1"  value="1" />
+            <span class="sval" id="hFreqVal">1.0</span>
+          </label>
+        </div>
+        <div class="draw-zone" id="hDrawZone" style="display:none">
+          <canvas id="hDrawCanvas" width="280" height="90"></canvas>
+          <div class="draw-hint">Click &amp; drag to draw signal</div>
+          <button class="clear-btn" id="hClearBtn">✕ Clear</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Animation Controls ─────────────────────────────── -->
+      <div class="conv-controls">
+        <div class="t-row">
+          <span class="t-label">t = <span id="tValDisplay">−8.00</span></span>
+          <input type="range" id="tSlider" min="-8" max="8" step="0.05" value="-8" />
+        </div>
+        <div class="anim-btns">
+          <button class="ctrl-btn" id="btnRewind" title="Rewind">⏮</button>
+          <button class="ctrl-btn primary" id="btnPlay" title="Play">▶</button>
+          <button class="ctrl-btn" id="btnStep"   title="Step">⏭</button>
+        </div>
+        <label class="slider-row">
+          <span>Speed</span>
+          <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1" />
+          <span class="sval" id="speedVal">1×</span>
+        </label>
+      </div>
+    </aside>
+
+    <!-- ── RIGHT: Visualization ─────────────────────────── -->
+    <section class="viz-panel">
+
+      <!-- Formula banner -->
+      <div class="formula-banner glass-panel">
+        <span class="formula" id="formulaText">y(t) = ∫ x(τ) · h(t−τ) dτ</span>
+        <div class="step-dots" id="stepDots">
+          <span class="step-dot active" title="x(t)"></span>
+          <span class="step-dot"        title="h(t)"></span>
+          <span class="step-dot"        title="h(t−τ) Flipped"></span>
+          <span class="step-dot"        title="Multiplication"></span>
+          <span class="step-dot"        title="y(t) Output"></span>
+          <span class="step-dot"        title="Spectrum |Y(f)|"></span>
+        </div>
+      </div>
+
+      <!-- 6-panel Plotly grid ────────────────────────────── -->
+      <div class="plot-grid">
+
+        <!-- Panel 1 -->
+          <div class="plot-card glass-panel">
+            <div class="plot-header">
+              <span class="plot-badge x-badge">x(τ)</span>
+              <span class="plot-title">Input Signal</span>
+            </div>
+            <div class="plotly-div" id="plot-x"></div>
+          </div>
+
+          <div class="plot-card glass-panel">
+            <div class="plot-header">
+              <span class="plot-badge h-badge">h(τ)</span>
+              <span class="plot-title">Impulse Response</span>
+            </div>
+            <div class="plotly-div" id="plot-h"></div>
+          </div>
+
+          <div class="plot-card glass-panel">
+            <div class="plot-header">
+              <span class="plot-badge f-badge">h(t-τ)</span>
+              <span class="plot-title">Flipped & Shifted</span>
+              <span id="overlap-pill" class="overlap-pill">OVERLAP</span>
+            </div>
+            <div class="plotly-div" id="plot-f"></div>
+          </div>
+
+          <div class="plot-card glass-panel">
+            <div class="plot-header">
+              <span class="plot-badge m-badge">x·h</span>
+              <span class="plot-title">Multiplication x(τ)·h(t-τ)</span>
+            </div>
+            <div class="plotly-div" id="plot-m"></div>
+          </div>
+
+        <!-- Panel 5 -->
+          <div class="plot-card glass-panel" id="card-y">
+            <div class="plot-header">
+              <span class="plot-badge y-badge">y(t)</span>
+              <h3 class="plot-title">Output: Numerical vs FFT Comparison</h3>
+            </div>
+            <div id="plot-y" class="plotly-div"></div>
+          </div>
+
+        <!-- Panel 6 — NEW: Magnitude Spectrum -->
+          <div class="plot-card glass-panel">
+            <div class="plot-header">
+              <span class="plot-badge s-badge">|Y(f)|</span>
+              <span class="plot-title">Magnitude Spectrum (FFT)</span>
+            </div>
+            <div class="plotly-div" id="plot-spec"></div>
+          </div>
+
+      </div><!-- /viz-panel -->
+
+      <!-- ── THEORY & MATHEMATICS ── -->
+      <section class="theory-section">
+        <div class="theory-header">
+          <h2>Theory & Mathematics</h2>
+          <p>Understanding Convolution in Time and Frequency Domains</p>
+        </div>
+
+        <div class="theory-grid">
+          <div class="theory-card">
+            <div class="theory-tag tag-time">Time Domain</div>
+            <h3>Sliding Integration</h3>
+            <p>
+              In the time domain, convolution represents the <strong>system overlap</strong>. 
+              The signal $h(t)$ is flipped, shifted by $t$, and multiplied by $x(\tau)$. 
+              The area under the product curve gives the output value at that instant.
+            </p>
+            <div class="formula-box">
+              y(t) = ∫ x(τ) · h(t - τ) dτ
+            </div>
+            <p>
+              For discrete signals, this becomes a <strong>sliding sum</strong>:
+            </p>
+            <div class="formula-box">
+              y[n] = Σ x[k] · h[n - k]
+            </div>
+          </div>
+
+          <div class="theory-card">
+            <div class="theory-tag tag-freq">Frequency Domain</div>
+            <h3>Convolution Theorem</h3>
+            <p>
+              The <strong>Convolution Theorem</strong> states that convolution in the time domain 
+              is equivalent to point-wise multiplication in the frequency domain. 
+              This is why we can compute it much faster using the FFT!
+            </p>
+            <div class="formula-box">
+              Y(f) = X(f) · H(f) <br>
+              y(t) = F⁻¹ { X(f) · H(f) }
+            </div>
+            <p>
+              The dotted line in the Output panel shows this theoretical result computed via FFT.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Info bar -->
+      <div class="info-bar glass-panel">
+        <div class="info-item">
+          <span class="info-key">Mode</span>
+          <span class="info-val" id="infoMode">Continuous</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">Current t</span>
+          <span class="info-val mono" id="infoT">−8.000</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">y(t)</span>
+          <span class="info-val mono" id="infoY">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">Overlap Area</span>
+          <span class="info-val mono" id="infoArea">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-key">Peak |Y(f)|</span>
+          <span class="info-val mono" id="infoSpec">—</span>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ── HELP MODAL ──────────────────────────────────────── -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal glass-panel">
+      <button class="modal-close" id="helpClose">✕</button>
+      <h2>How to use ConvoSim</h2>
+      <ol>
+        <li>Pick or draw <strong>x(t)</strong> and <strong>h(t)</strong> using the left panel.</li>
+        <li>Adjust <em>Amplitude</em>, <em>Width</em>, and <em>Shift</em> sliders.</li>
+        <li>Drag the <strong>t slider</strong> or press <strong>▶ Play</strong> to animate.</li>
+        <li>All <strong>6 Plotly panels</strong> update in sync — hover for exact values, scroll to zoom, drag to pan.</li>
+        <li>Toggle <strong>Continuous / Discrete</strong> mode at the top.</li>
+      </ol>
+      <table class="panel-table">
+        <tr><th>Panel</th><th>Description</th></tr>
+        <tr><td><span class="x-badge sig-badge">x(τ)</span></td><td>Static input signal</td></tr>
+        <tr><td><span class="h-badge sig-badge">h(τ)</span></td><td>Original impulse response</td></tr>
+        <tr><td><span class="f-badge sig-badge">h(t−τ)</span></td><td>Flipped &amp; shifted — moving cursor</td></tr>
+        <tr><td><span class="m-badge sig-badge">x·h</span></td><td>Pointwise multiplication (integrand)</td></tr>
+        <tr><td><span class="y-badge sig-badge">y(t)</span></td><td>Convolution output built point by point</td></tr>
+        <tr><td><span class="s-badge sig-badge">|Y(f)|</span></td><td>Magnitude spectrum via FFT</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
